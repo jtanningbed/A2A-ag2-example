@@ -27,7 +27,7 @@ dependencies = [
 packages = ["common", "hosts"]
 
 [tool.uv.workspace]
-members = ["agents/crewai"]
+members = ["agents/crewai", "agents/ag2"]
 
 [build-system]
 requires = ["hatchling"]

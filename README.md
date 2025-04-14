@@ -1,5 +1,33 @@
 ![image info](images/A2A_banner.png)
 
+# A2A-ag2-example: AG2 (AutoGen) Agent with A2A Protocol
+
+This fork demonstrates integrating an AG2 (AutoGen) AssistantAgent with the Agent2Agent (A2A) protocol, showcasing how different agent frameworks can communicate via a standardized protocol.
+
+## Key Features
+- **AG2 Framework Integration**: Implements an AG2 AssistantAgent that communicates using the A2A protocol
+- **MCP Integration**: Utilizes Model Context Protocol (MCP) with mcp-youtube server
+
+## Quick Start
+1. Install the local mcp server ([mcp-youtube](https://glama.ai/mcp/servers/@sparfenyuk/mcp-youtube))
+    ```bash
+    uv tool install git+https://github.com/sparfenyuk/mcp-youtube
+    ```
+
+2. Start the AG2 agent server:
+   ```bash
+   cd samples/python/agents/ag2
+   uv run .
+   ```
+
+3. Start the client in a new terminal via one of the following:
+   - Command-line client: `cd samples/python && uv run hosts/cli --agent http://localhost:10003` 
+   - Web UI: Start with `cd demo/ui && uv run main.py`, open web ui, then add the agent at localhost:10003
+
+For complete instructions, see the [AG2 agent README](/samples/python/agents/ag2/README.md) or any other relevant README.md throughout the samples.
+
+---
+
 **_An open protocol enabling communication and interoperability between opaque agentic applications._**
 
 <!-- TOC -->

@@ -1,5 +1,3 @@
-![image info](images/A2A_banner.png)
-
 # A2A-ag2-example: AG2 (AutoGen) Agent with A2A Protocol
 
 This fork demonstrates integrating an AG2 (AutoGen) AssistantAgent with the Agent2Agent (A2A) protocol, showcasing how different agent frameworks can communicate via a standardized protocol.
@@ -27,6 +25,7 @@ This fork demonstrates integrating an AG2 (AutoGen) AssistantAgent with the Agen
 For complete instructions, see the [AG2 agent README](/samples/python/agents/ag2/README.md) or any other relevant README.md throughout the samples.
 
 ---
+![image info](images/A2A_banner.png)
 
 **_An open protocol enabling communication and interoperability between opaque agentic applications._**
 

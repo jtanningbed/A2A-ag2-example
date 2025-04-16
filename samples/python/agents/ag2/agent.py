@@ -31,7 +31,7 @@ class ResponseModel(BaseModel):
 def get_api_key() -> str:
     """Helper method to handle API Key."""
     load_dotenv()
-    return os.getenv("OPENAI_API_KEY")
+    return os.getenv("GOOGLE_API_KEY")
 
 class YoutubeMCPAgent:
     """Agent to access a Youtube MCP Server to download closed captions"""

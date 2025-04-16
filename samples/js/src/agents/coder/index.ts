@@ -9,6 +9,11 @@ import * as schema from "../../schema.js"; // Import schema for types
 import { ai } from "./genkit.js";
 import { CodeMessage } from "./code-format.js"; // CodeMessageSchema might not be needed here
 
+if (!process.env.GEMINI_API_KEY) {  
+  console.error("GEMINI_API_KEY environment variable not set.")
+  process.exit(1);
+}
+
 async function* coderAgent({
   task,
   history, // Extract history from context

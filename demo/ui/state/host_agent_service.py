@@ -176,6 +176,7 @@ def convert_event_to_state(event: Event) -> StateEvent:
       conversation_id=extract_message_conversation(event.content),
       actor=event.actor,
       role=event.content.role,
+      id=event.id,
       content=extract_content(event.content.parts),
   )
 
@@ -232,4 +233,3 @@ def extract_conversation_id(task: Task) -> str:
     if a.metadata and 'conversation_id' in a.metadata:
       return a.metadata['conversation_id']
   return ""
-

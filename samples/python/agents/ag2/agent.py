@@ -16,10 +16,10 @@ logger = logging.getLogger(__name__)
 def get_api_key() -> str:
     """Helper method to handle API Key."""
     load_dotenv()
-    return os.getenv("OPENAI_API_KEY")
+    return os.getenv("GOOGLE_API_KEY")
 
 class YoutubeMCPAgent:
-    """A2A-compatible wrapper for AG2's MCP-enabled agent."""
+    """Agent to access a Youtube MCP Server to download closed captions"""
 
     SUPPORTED_CONTENT_TYPES = ["text", "text/plain"]
 
@@ -28,16 +28,16 @@ class YoutubeMCPAgent:
         try:
             # Set up LLM configuration
             llm_config = LLMConfig(
-                model="gpt-4o-mini",
-                api_type="openai",
+                model="gemini-2.0-flash",
+                api_type="google",
                 api_key=get_api_key()
             )
 
             # Create the assistant agent that will use MCP tools
             self.agent = AssistantAgent(
-                name="MCPAgent",
+                name="YoutubeMCPAgent",
                 llm_config=llm_config,
-                system_message="You are a helpful assistant with access to MCP tools. You can solve various tasks using these tools."
+                system_message="You are a helpful assistant with access to MCP tools. You can solve various tasks using these tools.",
             )
 
             self.initialized = True
@@ -110,7 +110,7 @@ class YoutubeMCPAgent:
             logger.info(f"Processing query in stream: {query[:50]}...")
 
             try:                
-                # Create stdio server parameters for mcp-youtube 
+                # Create stdio server parameters for mcp-youtube
                 server_params = StdioServerParameters(
                     command="mcp-youtube",
                 )

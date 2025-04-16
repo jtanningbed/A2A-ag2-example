@@ -65,7 +65,7 @@ sequenceDiagram
 3. Create an environment file with your API keys:
 
    ```bash
-   echo "OPENAI_API_KEY=your_api_key_here" > .env
+   echo "GOOGLE_API_KEY=your_api_key_here" > .env
    ```
 
 4. Run the agent:

@@ -34,7 +34,7 @@ def main(host, port):
                 ]
             )
         ]
-        
+
         agent_card = AgentCard(
             name="YouTube Captions Agent",
             description="AI agent that can extract closed captions and transcripts from YouTube videos. This agent provides raw transcription data that can be used for further processing.",
@@ -53,7 +53,7 @@ def main(host, port):
             port=port,
         )
 
-        logger.info(f"Starting AG2 MCP agent on {host}:{port}")
+        logger.info(f"Starting AG2 Youtube MCP agent on {host}:{port}")
         server.start()
     except MissingAPIKeyError as e:
         logger.error(f"Error: {e}")

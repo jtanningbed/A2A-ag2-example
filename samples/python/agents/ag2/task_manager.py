@@ -1,4 +1,4 @@
-from typing import AsyncIterable, Union
+from typing import AsyncIterable
 from common.types import (
     SendTaskRequest,
     TaskSendParams,
@@ -13,8 +13,7 @@ from common.types import (
     SendTaskStreamingRequest,
     SendTaskStreamingResponse,
     TaskArtifactUpdateEvent,
-    TaskStatusUpdateEvent,
-    Task,
+    TaskStatusUpdateEvent
 )
 from common.server.task_manager import InMemoryTaskManager
 from .agent import YoutubeMCPAgent
@@ -222,7 +221,7 @@ class AgentTaskManager(InMemoryTaskManager):
     # -------------------------------------------------------------
 
     def _validate_request(
-        self, request: Union[SendTaskRequest, SendTaskStreamingRequest]
+        self, request: SendTaskRequest | SendTaskStreamingRequest
     ) -> JSONRPCResponse | None:
         """
         Validate task request parameters for compatibility with agent capabilities.

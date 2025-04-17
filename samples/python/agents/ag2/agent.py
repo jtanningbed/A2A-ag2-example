@@ -3,7 +3,7 @@ import os
 import traceback
 import json
 from dotenv import load_dotenv
-from typing import AsyncIterable, Any
+from typing import AsyncIterable, Any, Literal
 from pydantic import BaseModel
 
 from autogen import AssistantAgent, LLMConfig
@@ -13,8 +13,6 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 logger = logging.getLogger(__name__)
-
-from typing import Literal
 
 class ResponseModel(BaseModel):
     """Response model for the YouTube MCP agent."""

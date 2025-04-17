@@ -1,9 +1,10 @@
-import asyncio
 import logging
 import os
 import traceback
+import json
 from dotenv import load_dotenv
-from typing import AsyncIterable, Dict, Any
+from typing import AsyncIterable, Any
+from pydantic import BaseModel
 
 from autogen import AssistantAgent, LLMConfig
 from autogen.mcp import create_toolkit
@@ -13,10 +14,26 @@ from mcp.client.stdio import stdio_client
 
 logger = logging.getLogger(__name__)
 
+from typing import Literal
+
+class ResponseModel(BaseModel):
+    """Response model for the YouTube MCP agent."""
+    text_reply: str
+    closed_captions: str | None
+    status: Literal["TERMINATE", ""]
+    
+    def format(self) -> str:
+        """Format the response as a string."""
+        if self.closed_captions is None:
+            return self.text_reply
+        else:
+            return f"{self.text_reply}\n\nClosed Captions:\n{self.closed_captions}"
+
+
 def get_api_key() -> str:
     """Helper method to handle API Key."""
     load_dotenv()
-    return os.getenv("GOOGLE_API_KEY")
+    return os.getenv("OPENAI_API_KEY")
 
 class YoutubeMCPAgent:
     """Agent to access a Youtube MCP Server to download closed captions"""
@@ -26,18 +43,34 @@ class YoutubeMCPAgent:
     def __init__(self):
         # Import AG2 dependencies here to isolate requirements
         try:
-            # Set up LLM configuration
+            # Set up LLM configuration with response format
             llm_config = LLMConfig(
-                model="gemini-2.0-flash",
-                api_type="google",
-                api_key=get_api_key()
+                model="gpt-4o",
+                api_key=get_api_key(),
+                response_format=ResponseModel
             )
 
             # Create the assistant agent that will use MCP tools
             self.agent = AssistantAgent(
                 name="YoutubeMCPAgent",
                 llm_config=llm_config,
-                system_message="You are a helpful assistant with access to MCP tools. You can solve various tasks using these tools.",
+                system_message=(
+                    "You are a specialized assistant for processing YouTube videos. "
+                    "You can use MCP tools to fetch captions and process YouTube content. "
+                    "You can provide captions, summarize videos, or analyze content from YouTube. "
+                    "If the user asks about anything not related to YouTube videos or doesn't provide a YouTube URL, "
+                    "politely state that you can only help with tasks related to YouTube videos.\n\n"
+                    "IMPORTANT: Always respond using the ResponseModel format with these fields:\n"
+                    "- text_reply: Your main response text\n"
+                    "- closed_captions: YouTube captions if available, null if not relevant\n"
+                    "- status: Always use 'TERMINATE' for all responses \n\n"
+                    "Example response:\n"
+                    "{\n"
+                    "  \"text_reply\": \"Here's the information you requested...\",\n"
+                    "  \"closed_captions\": null,\n"
+                    "  \"status\": \"TERMINATE\"\n"
+                    "}"
+                ),
             )
 
             self.initialized = True
@@ -46,68 +79,49 @@ class YoutubeMCPAgent:
             logger.error(f"Failed to import AG2 components: {e}")
             self.initialized = False
 
-    async def _create_toolkit_and_run(self, query: str) -> str:
-        """Create MCP toolkit and run the query with the agent."""
+    def get_agent_response(self, response: str) -> dict[str, Any]:
+        """Format agent response in a consistent structure."""
         try:
-            # Create stdio server parameters for MCP
-            server_params = StdioServerParameters(
-                command="mcp-youtube",
-            )
-
-            logger.info(f"Creating MCP toolkit for query: {query[:50]}...")
-
-            # Connect to the MCP server using stdio client
-            async with stdio_client(server_params) as (read, write), ClientSession(read, write) as session:
-                # Initialize the connection
-                await session.initialize()
-
-                # Create a toolkit with available MCP tools
-                toolkit = await create_toolkit(session=session)
-
-                # Register MCP tools with the agent
-                toolkit.register_for_llm(self.agent)
-
-                # Make a request using the MCP tools
-                result = await self.agent.a_run(
-                    message=query,
-                    tools=toolkit.tools,
-                    max_turns=2,
-                    user_input=False,
-                )
-
-                try:    
-                    # Process the result which will print the output
-                    await result.process()
-
-                    # Get the summary which by default contains the agent's last message output
-                    return await result.summary
-
-                except Exception as extraction_error:
-                    logger.error(f"Error extracting response: {extraction_error}")
-                    return f"Error extracting response from MCP agent: {str(extraction_error)}"
+            # Try to parse the response as a ResponseModel JSON
+            response_dict = json.loads(response)
+            model = ResponseModel(**response_dict)
+            
+            # All final responses should be treated as complete
+            return {
+                "is_task_complete": True,
+                "require_user_input": False,
+                "content": model.format()
+            }
         except Exception as e:
-            logger.error(f"Error using MCP toolkit: {e}")
-            raise
+            # Log but continue with best-effort fallback
+            logger.error(f"Error parsing response: {e}, response: {response}")
+            
+            # Default to treating it as a completed response
+            return {
+                "is_task_complete": True, 
+                "require_user_input": False,
+                "content": response
+            }
 
-    async def stream(self, query: str, sessionId: str) -> AsyncIterable[Dict[str, Any]]:
+    async def stream(self, query: str, sessionId: str) -> AsyncIterable[dict[str, Any]]:
         """Stream updates from the MCP agent."""
         if not self.initialized:
             yield {
                 "is_task_complete": False,
                 "require_user_input": True,
-                "content": "MCP agent initialization failed. Please check the dependencies and logs."
+                "content": "Agent initialization failed. Please check the dependencies and logs."
             }
             return
 
         try:
-            # Initial status update
+            # Initial response to acknowledge the query
             yield {
                 "is_task_complete": False,
                 "require_user_input": False,
-                "content": "Connecting to MCP server..."
+                "content": "Processing request..."
             }
 
-            logger.info(f"Processing query in stream: {query[:50]}...")
+            logger.info(f"Processing query: {query[:50]}...")
 
             try:                
                 # Create stdio server parameters for mcp-youtube
@@ -115,71 +129,54 @@ class YoutubeMCPAgent:
                     command="mcp-youtube",
                 )
 
-                # Progress update
-                yield {
-                    "is_task_complete": False,
-                    "require_user_input": False,
-                    "content": "Setting up MCP toolkit..."
-                }
-
                 # Connect to the MCP server using stdio client
                 async with stdio_client(server_params) as (read, write), ClientSession(read, write) as session:
                     # Initialize the connection
                     await session.initialize()
 
-                    # Progress update
-                    yield {
-                        "is_task_complete": False,
-                        "require_user_input": False,
-                        "content": "Processing with MCP tools..."
-                    }
-
                     # Create toolkit and register tools
                     toolkit = await create_toolkit(session=session)
                     toolkit.register_for_llm(self.agent)
 
-                    # Process the request
                     result = await self.agent.a_run(
                         message=query,
                         tools=toolkit.tools,
-                        max_turns=2,
+                        max_turns=2,  # Fixed at 2 turns to allow tool usage
                         user_input=False,
                     )
 
                     # Extract the content from the result
                     try:
-                        # Process the result which will print the output
+                        # Process the result
                         await result.process()
-
+                        
                         # Get the summary which contains the output
                         response = await result.summary
 
                     except Exception as extraction_error:
                         logger.error(f"Error extracting response: {extraction_error}")
-                        response = f"Error extracting response from MCP agent: {str(extraction_error)}"
+                        traceback.print_exc()
+                        response = f"Error processing request: {str(extraction_error)}"
 
                     # Final response
-                    yield {
-                        "is_task_complete": True,
-                        "require_user_input": False,
-                        "content": response
-                    }
+                    yield self.get_agent_response(response)
+                    
             except Exception as e:
-                logger.error(f"Error during MCP processing: {traceback.format_exc()}")
+                logger.error(f"Error during processing: {traceback.format_exc()}")
                 yield {
                     "is_task_complete": False,
                     "require_user_input": True,
-                    "content": f"Error during MCP interaction: {str(e)}"
+                    "content": f"Error processing request: {str(e)}"
                 }
         except Exception as e:
-            logger.error(f"Error in streaming MCP agent: {traceback.format_exc()}")
+            logger.error(f"Error in streaming agent: {traceback.format_exc()}")
             yield {
                 "is_task_complete": False,
                 "require_user_input": True,
-                "content": f"Error during MCP interaction: {str(e)}"
+                "content": f"Error processing request: {str(e)}"
             }
 
-    def invoke(self, query: str, sessionId: str) -> Dict[str, Any]:
+    def invoke(self, query: str, sessionId: str) -> dict[str, Any]:
         """Synchronous invocation of the MCP agent."""
         raise NotImplementedError(
             "Synchronous invocation is not supported by this agent. Use the streaming endpoint (tasks/sendSubscribe) instead."

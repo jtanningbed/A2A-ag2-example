@@ -62,7 +62,7 @@ sequenceDiagram
    cd samples/python/agents/ag2
    ```
 
-3. Create an environment file with your API keys:
+3. Create an environment file with your API keys (uses openai gpt-4o):
 
    ```bash
    echo "OPENAI_API_KEY=your_api_key_here" > .env
@@ -86,7 +86,7 @@ sequenceDiagram
    uv run hosts/cli
    ```
    
-   b) Use the demo web UI:
+   b) Use the demo web UI (uses google gemini-2.0-flash-001):
    ```bash
    cd demo/ui
    echo "GOOGLE_API_KEY=your_api_key_here" > .env
@@ -140,7 +140,7 @@ Content-Type: application/json
 {
   "jsonrpc": "2.0",
   "id": 1,
-  "method": "tasks/sendSubscribe",  // Note: Only streaming is supported
+  "method": "tasks/sendSubscribe",
   "params": {
     "id": "mcp-task-01",
     "sessionId": "user-session-123",
